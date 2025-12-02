@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: kube-lab-app
-        image: kube-lab-app:v1
+        image: kube-lab-app:v2
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
