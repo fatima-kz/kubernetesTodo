@@ -1,0 +1,84 @@
+<!-- public/index.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Minimal Todo - Kube Lab</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width:700px; margin:30px auto; padding:0 10px; }
+    h1 { color:#222; }
+    .todo { display:flex; justify-content:space-between; padding:6px 0; }
+    .done { text-decoration:line-through; color:#888; }
+    button { margin-left:8px; }
+    input[type=text] { width:70%; padding:6px; }
+  </style>
+</head>
+<body>
+  <h1>Hello from Kubernetes!</h1>
+  <p>Minimal Todo app (in-memory). Use this for the kube lab.</p>
+
+  <div>
+    <input id="newtodo" type="text" placeholder="New task..." />
+    <button id="addBtn">Add</button>
+  </div>
+  <div id="list" style="margin-top:16px;"></div>
+
+  <script>
+    async function load() {
+      const r = await fetch('/api/todos');
+      const todos = await r.json();
+      const list = document.getElementById('list');
+      list.innerHTML = '';
+      todos.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'todo';
+        el.innerHTML = `
+          <div>
+            <input type="checkbox" ${t.done ? 'checked' : ''} data-id="${t.id}" class="chk" />
+            <span class="${t.done ? 'done' : ''}">${escapeHtml(t.text)}</span>
+          </div>
+          <div>
+            <button data-id="${t.id}" class="del">Delete</button>
+          </div>
+        `;
+        list.appendChild(el);
+      });
+      attachHandlers();
+    }
+
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function attachHandlers(){
+      document.querySelectorAll('.chk').forEach(cb => {
+        cb.onchange = async e => {
+          const id = e.target.dataset.id;
+          await fetch('/api/todos/' + id + '/toggle', { method: 'PUT' });
+          load();
+        };
+      });
+      document.querySelectorAll('.del').forEach(b => {
+        b.onclick = async e => {
+          const id = e.target.dataset.id;
+          await fetch('/api/todos/' + id, { method: 'DELETE' });
+          load();
+        };
+      });
+    }
+
+    document.getElementById('addBtn').onclick = async () => {
+      const v = document.getElementById('newtodo').value.trim();
+      if (!v) return alert('Enter text');
+      await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: v })
+      });
+      document.getElementById('newtodo').value = '';
+      load();
+    };
+
+    load();
+  </script>
+</body>
+</html>
